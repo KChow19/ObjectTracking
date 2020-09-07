@@ -46,14 +46,14 @@ class ImageConverter
         }
 
         cv::Mat BGR_image_filtered;
-        bilateralFilter(BGR_image->image, BGR_image_filtered, 9, 75, 75);
+        bilateralFilter(BGR_image->image, BGR_image_filtered, 15, 150, 150);
         
         //Convert from RGB to HSV
         cvtColor(BGR_image_filtered, HSV_image->image, cv::COLOR_BGR2HSV);
         
         //define range
         int low_H = 15;
-        int low_S = 50;
+        int low_S = 150;
         int low_V = 50;
 
         int high_H = 45;
@@ -69,16 +69,14 @@ class ImageConverter
         greyscale = hsv_channels[0];
 
         //Filtering
-        /*
         cv::Mat filtered_greyscale;
-        cv::fastNlMeansDenoising(greyscale, filtered_greyscale, 7, 21, 20);
-        */
+        GaussianBlur(greyscale, filtered_greyscale, cv::Size(3,3), 21, 21, cv::BORDER_DEFAULT);
                 
         cv::Mat dst, detected_edges;
-        Canny(greyscale, detected_edges, 200, 300, 3); //TODO: change to filtered_greyscale
+        Canny(filtered_greyscale, detected_edges, 200, 300, 3); //TODO: change to filtered_greyscale
         dst = cv::Scalar::all(0);
         
-        greyscale.copyTo(dst, detected_edges); //TODO: change to filtered_greyscale
+        filtered_greyscale.copyTo(dst, detected_edges); //TODO: change to filtered_greyscale
         
         std::vector<std::vector<cv::Point>> contours;
         findContours(dst, contours, cv::RETR_LIST, cv::CHAIN_APPROX_SIMPLE);
@@ -86,8 +84,8 @@ class ImageConverter
         std::vector<std::vector<cv::Point> > contours_poly(contours.size());
         std::vector<cv::Rect> boundRect(contours.size());
         
-        double MinAreaContour = -1;
-        double MaxAreaContour = 99999999;
+        double MinAreaContour = 300;
+        double MaxAreaContour = 1000;
         
         for (size_t i = 0; i < contours.size(); i++)
         {
@@ -111,15 +109,19 @@ class ImageConverter
         cvtColor(detected_edges, RGB_detected_edges, CV_GRAY2RGB);
 
         cv::Mat output;
-        //addWeighted(drawing, 0.5, BGR_image->image, 0.5, 0.0, output); //Overlayed with input image
-        addWeighted(drawing, 0.5, RGB_detected_edges, 0.5, 0.0, output); //Overlayed with contours image
-        
-        //cv::imshow(OPENCV_WINDOW, threshold_HSV->image); //Greyscale image
-        cv::imshow(OPENCV_WINDOW, output); //Final detection image
+        addWeighted(drawing, 0.5, BGR_image->image, 0.5, 0.0, output); //Overlayed with input image
+        //addWeighted(drawing, 0.5, RGB_detected_edges, 0.5, 0.0, output); //Overlayed with contours image
 
-        //cv::imshow(OPENCV_WINDOW, detected_edges); //Contours image
-        cv::waitKey(3);
-        
+        //cv::imshow(OPENCV_WINDOW, BGR_image->image); //Input image
+        //cv::imshow(OPENCV_WINDOW, BGR_image_filtered); //Filtered input image
+        //cv::imshow(OPENCV_WINDOW, threshold_HSV->image); //Greyscale image
+        //cv::imshow(OPENCV_WINDOW, filtered_greyscale); //Filtered Greyscale image
+        //cv::imshow(OPENCV_WINDOW, detected_edges); //Canny edge image
+        cv::imshow(OPENCV_WINDOW, output); //Final detection image
+        if(cv::waitKey(3) == 's')
+        {
+          imwrite("sample.png", BGR_image->image);
+        }
         //image_pub_.publish(cv_ptr->toImageMsg());
     }
 };
