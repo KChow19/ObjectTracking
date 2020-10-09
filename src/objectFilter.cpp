@@ -18,8 +18,8 @@ int high_H = 255; //27
 int high_S = 255; //255
 int high_V = 255; //255
 
-int MinAreaContour = 0;
-int MaxAreaContour = 100;
+int MinAreaContour = 4000;
+int MaxAreaContour = 4000;
 
 int x_position = 0;
 int y_position = 0;
@@ -90,18 +90,18 @@ class ImageConverter
         filtered_greyscale.copyTo(dst, detected_edges); //TODO: change to filtered_greyscale
         
         std::vector<std::vector<cv::Point>> contours;
-        findContours(dst, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        findContours(dst, contours, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
         
         std::vector<std::vector<cv::Point> > contours_poly(contours.size());
         std::vector<cv::Rect> boundRect(contours.size());
         
         for (size_t i = 0; i < contours.size(); i++)
         {
-          double AreaContour = contourArea(contours[i]);
-          if(AreaContour < MaxAreaContour && AreaContour > MinAreaContour)
+          //double AreaContour = contourArea(contours[i]);
+          //if(AreaContour < MaxAreaContour && AreaContour > MinAreaContour)
           {
-            approxPolyDP(contours[i], contours_poly[i], 3, true);
-            boundRect[i] = boundingRect(contours_poly[i]);
+            //approxPolyDP(contours[i], contours_poly[i], 3, true);
+            boundRect[i] = boundingRect(contours[i]);
           }
         }
         
@@ -129,28 +129,31 @@ class ImageConverter
         cv::createTrackbar("Low V", OPENCV_WINDOW, &low_V, 255, low_V_trackbar);
         cv::createTrackbar("High V", OPENCV_WINDOW, &high_V, 255, high_V_trackbar);
         
-        cv::createTrackbar("Low Area", "Final Output", &MinAreaContour, 100, low_area_trackbar);
-        cv::createTrackbar("High Area", "Final Output", &MaxAreaContour, 100, high_area_trackbar);
+        cv::createTrackbar("Low Area", "Final Output", &MinAreaContour, 5000, low_area_trackbar);
+        cv::createTrackbar("High Area", "Final Output", &MaxAreaContour, 10000, high_area_trackbar);
         
         //Determining the x and y location of the object
+        double areaContour = 0;
         if(!boundRect.empty())
         {
           for(int i = 0; i < boundRect.size(); i++)
           {
-            if(boundRect[i].x != 0 && boundRect[i].y != 0)
+            areaContour = contourArea(contours[i]);
+            //if(boundRect[i].x != 0 && boundRect[i].y != 0)
+            if(areaContour < MaxAreaContour && areaContour > MinAreaContour)
             {
-              x_position = (x_position + ((boundRect[i].x + boundRect[i].width)/2))/2;
-              y_position = (y_position + ((boundRect[i].y + boundRect[i].height)/2))/2;
+              x_position = (x_position + (boundRect[i].x + boundRect[i].width /2))/2;
+              y_position = (y_position + (boundRect[i].y + boundRect[i].height /2))/2;
+              //x_position = (x_position + boundRect[i].x)/2;
+              //y_position = (y_position + boundRect[i].y)/2;
             }
             circle(output2, cv::Point(x_position, y_position), 10, cv::Scalar(0, 255, 0), CV_FILLED, 8, 0);
           }
         }
 
-        //String x_text =
-        //String y_text =
-
         putText(output2, "x: " + std::to_string(x_position), cv::Point2f(10, 20), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255, 255));
         putText(output2, "y: " + std::to_string(y_position), cv::Point2f(10, 50), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255, 255));
+        putText(output2, "Area: " + std::to_string(areaContour), cv::Point2f(10, 80), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar(255, 255, 255, 255));
 
         //cv::imshow(OPENCV_WINDOW, BGR_image->image); //Input image
         //cv::imshow(OPENCV_WINDOW, BGR_image_filtered); //Filtered input image
@@ -161,7 +164,8 @@ class ImageConverter
         cv::imshow("Final Output", output2);
         if(cv::waitKey(3) == 's')
         {
-          imwrite("sample.png", BGR_image->image);
+          //imwrite("sample.png", BGR_image->image);
+          imwrite("filtered_output.png", output1);
         }
         //image_pub_.publish(cv_ptr->toImageMsg());
     }
